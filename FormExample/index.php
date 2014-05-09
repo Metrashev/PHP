@@ -1,87 +1,115 @@
-<!DOCTYPE HTML> 
+<?php
+	$OptionsSex = array('male'=>'Мъж', 'female'=>'Жена');
+	$OptionsForUs = array(''=>'', 0=>'Newspaper', 4=>'QWE', 1=>'Google', 2=>'Site', 3=>'Friend');
+
+	function EOD($exp){return $exp;}
+	$EOD = function($q){return $q;};
+	
+	if (isset($_POST['doSubmit'])) {
+	$name = $_POST ['name'];
+	$email = $_POST ['email'];
+	$forUs = $_POST ['forUs'];
+	$agree = $_POST ['agree'];
+	$sex = $_POST ['sex'];
+	$info = $_POST ['info'];
+	
+	$error = array ();
+	$validName = '/^(?:\p{Cyrillic}+[ -]?){1,4}$/u';
+	$validEmail = '/([a-z0-9_.-]+)'.'@'.'([a-z0-9.-]+)+'.'\.'.'([a-z]+){2,10}/i';
+	
+	if (!($name && preg_match ($validName, $name))) {
+		$error ['name'] = 'Името не е попълнено или e въведено на латиница!';
+	}
+	
+	if ($email) {
+		if (!preg_match ($validEmail, $email)) {
+			$error ['email'] = 'Невалиден емайл адрес!';
+		}
+	}
+	
+	if (!$info) {
+		$error ['info'] = "Не е попълнен коментара";
+	}
+	if ($agree != 1) {
+		$error ['iagree'] = "Не сте съгласни с общите условия";
+	}
+	
+	if(!empty($error)) {
+		$FormMessage = implode('<br/>', $error);
+	} else {
+		$to = "vladi@studioitti.com";
+		$subject = 'глор';
+		$headers  = 'MIME-Version: 1.0' . "\r\n";
+		$headers .= 'Content-type: text/html; charset=utf-8' . "\r\n";
+		$info=nl2br($_POST['info']);
+		
+		$message = <<<EOD
+<html>
+
+<body>
+<p>You have a new form request from your web site.</p>
+	<p>The client is: {$_POST['name']}</p>
+	<p>Sex: {$_POST['sex']}</p>
+	<p>Send e-mail from:{$_POST['email']}</p>
+	<p>Comment:{$EOD(nl2br($_POST['info']))}</p>
+</body>
+</html>
+EOD;
+		echo '<hr><br>'.$message.'<br/><hr>';
+		mail($to, "=?utf-8?B?".base64_encode($subject)."?=", $message, $headers);
+		$FormMessage = "Вие изпратихте мейла успешно!";
+	}
+}
+
+?>
 <html>
 <head>
-<style>
-.error {color: #FF0000;}
-</style>
+<meta charset="utf8">
 </head>
-<body> 
+<body>
+<?=$FormMessage?>
+<form method="post" action="">
+		<label for="name">Име:</label> <input type="text" name="name" id="name" placeholder="Иван" value="<?=$_POST['name'];?>">
+		<?=$error['name'];?>
+		<br />
+		<?php
+		
+			
+			
+			foreach ($OptionsSex as $k=>$v){
+				$selected = $_POST['sex']==$k ? ' checked="checked"' : '';
+				echo <<<EOD
+<label><input type="radio" name="sex" value="{$k}"{$selected}>{$v}</label>
+EOD;
+			}
+			
+		 ?>
+		<br />Е-майл: <input type="text" name="email"	placeholder="ivan.ivanov@gmail.com" value="<?=$_POST['email'];?>"><br />
+		 <select name="forUs[]" multiple="multiple" onchange="this.form.submit()">
+		 <?php 
+		 
+		
+		 	
+		 if(empty($_POST['forUs'])) $_POST['forUs'] = array();
+		 foreach ($OptionsForUs as $k=>$v){
+		  	$selected = in_array("$k", $_POST['forUs'], true) ? ' selected="selected"' : '';
+		 	echo <<<EOD
+<option value="{$k}"{$selected}>{$v}</option>
+EOD;
+		 }
+		 
+		 ?>
+		</select><br />
 
-<?php
-$nameErr = $emailErr = $genderErr = $commentErr = $acceptErr = "";
-$name = $email = $comment = $gender = $accept = "";
+		<textarea name="info" rows="5" cols="20"><?=$_POST ['info']?></textarea><br />
+		<?php
+		$selected = $_POST['agree']=='1' ? ' checked="checked"' : '';
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-   if (empty($_POST["name"])) {
-     $nameErr = "Name is required";
-   } else {
-     $name = test_input($_POST["name"]);
-    if (!preg_match("/^[a-z0-9]+$/i",$name)) {
-       $nameErr = "Only letters and white space allowed"; 
-     }
-   }
-   
-   if (empty($_POST["email"])) {
-     $emailErr = "Enter some e-mail!";
-   } else {
-     $email = test_input($_POST["email"]);
-     if (!preg_match("/([\w\-]+\@[\w\-]+\.[\w\-]+)/",$email)) {
-       $emailErr = "Invalid email format";
-     }
-   }
-     
-  if (empty($_POST["comment"])) {
-     $commentErr = "Comment is required";
-   } else {
-       $comment = test_input($_POST["comment"]);
-   }
-
-  
-
-   if (empty($_POST["gender"])) {
-     $genderErr = "Select gander";
-   } else {
-     $gender = test_input($_POST["gender"]);
-   }
-   
-   if (empty($_POST["check"])) {
-     $acceptErr = "Accept the condition!";
-   } else {
-     $accept = test_input($_POST["check"]);
-   }
-}
-
-function test_input($data) {
-   $data = trim($data);
-   $data = stripslashes($data);
-   $data = htmlspecialchars($data);
-   return $data;
-}
-?>
-
-<h2>PHP Form </h2>
-
-<form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>"> 
-   Name: <input type="text" name="name" value="<?php echo $name;?>">
-   <span class="error">* <?php echo $nameErr;?></span>
-   <br><br>
-   E-mail: <input type="text" name="email" value="<?php echo $email;?>">
-   <?php echo $emailErr;?>
-   <br><br>
-   <p>Comment:</p>
-   <textarea name="comment" rows="5" cols="40"><?php echo $comment;?></textarea>
-   <span class="error">* <?php echo $commentErr;?></span>
-   <br><br>
-   Gender:
-   <input type="radio" name="gender" <?php if (isset($gender) && $gender=="female") echo "checked";?>  value="female">Female
-   <input type="radio" name="gender" <?php if (isset($gender) && $gender=="male") echo "checked";?>  value="male">Male
-   <?php echo $genderErr;?>
-   <br><br>
-   <input type="checkbox" name="check"  <?php if (isset($accept) && $accept=="accept") echo "checked";?>value="accept">Accept the conditions
-   <span class="error">* <?php echo $acceptErr;?></span>
-   <br></br>
-   <input type="submit" name="submit" value="Submit"> 
-   <p><span class="error">* required field.</span></p>
-</form>
+			echo <<<EOD
+	    <input type="checkbox" name="agree" value="1"{$selected}>Съгласен съм с общите условия<br />
+EOD;
+			?>
+		<input type="submit" name="doSubmit" value="Изпрати">
+	</form>
 </body>
 </html>
